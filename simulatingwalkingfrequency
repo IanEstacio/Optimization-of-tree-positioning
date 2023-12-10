@@ -1,0 +1,656 @@
+model Optimizationoftreepositioning
+
+global {
+	float seedvalue <- 10.0;	
+	float startt <- machine_time;
+	//--Initilization parameters--
+	//Number of agents
+	//int nb_persons_init <- 500;
+	int nb_trees_init <- 100;
+	//Distribution of human agents
+	int by_floorarea <- 1; 
+	bool bool_floorarea <- by_floorarea = 1 ? true:false;
+	int by_temporaldistribution <- 0;
+	bool bool_temporaldistribution <- by_temporaldistribution = 1 ? true:false;
+	//Experiment type
+	int by_optimization <- 1;
+	bool bool_optimization <- by_optimization = 1 ? true:false;
+	bool stop_currentrun <- false;
+	bool is_batch <- false;
+	//Positioning of tree agents
+	float dist_bet_tree <- 10.0 #m;	
+	int build_on_north <- 1;
+	int build_on_south <- 1;
+	int build_on_west <- 1;
+	int build_on_east <- 1;
+	bool bool_buildingnorth <- build_on_north = 1 ? true:false;
+	bool bool_buildingsouth <- build_on_south = 1 ? true:false;
+	bool bool_buildingwest <- build_on_west = 1 ? true:false;
+	bool bool_buildingeast <- build_on_east = 1 ? true:false;
+	float h_over_d_threshold <- 100.0;
+	//Hour of experiment
+	int startingtime <- 9;
+	int endingtime <- 16; 													
+	
+	//--Simulation parameters--
+	//Properties of human agents 
+    float slow_speed <- 0.89 #meters/#second;
+    float fast_speed <- 1.33 #meters/#second;
+    float slow_metrate <- 116.3;
+    float fast_metrate <- 151.19;
+    float slow_mecpow <- 0.0;
+    float fast_mecpow <- 0.0;
+    float formal_icl <- 0.48;
+    float casual_icl <- 0.24;
+    int min_goout_end <- 1;															
+    int max_goout_end <- 30;
+    int min_tolerance_sec <- 240;
+    int max_tolerance_sec <- 480;
+    //Stochasticity parameters - non-affecting
+    int global_work_end <- 1;
+    //Stochasticity parameters - affecting randomness
+	int global_speed_no <- rnd(1, 2);
+	int global_clothes_no <- rnd(1, 2);
+	float global_tolerancetohotness <- rnd(2.0,4.0);	
+	int global_tolerancetouncomfortness <- rnd(int(min_tolerance_sec/10),int(max_tolerance_sec/10));		    														
+    //Modification of the environment from trees
+    float MRT_coef <- 370.0;
+    float distfromtree_coef <- 1.29;
+    float angle_coef <- 1.12;
+    float length_coef <- 1.13;
+	
+	//--import of files and setting of the environment--
+	//shapefiles
+	file shape_file_building <- shape_file("../includes/Buildings.shp");
+	file shape_file_pathway <- shape_file("../includes/Pathway.shp");
+	file shape_file_target <- shape_file("../includes/Target.shp");
+	file shape_file_treeline <- shape_file("../includes/Tree line.shp");
+	//csv
+	file csv_file_AltAzi <- csv_file("../includes/Altitude_Azimuth.csv",",");
+	matrix matrixAltAzi <- matrix(csv_file_AltAzi);
+	file csv_file_PedNum <- csv_file("../includes/Pedestrian_Number.csv",",");
+	matrix matrixPedNum <- matrix(csv_file_PedNum);
+	//raster files
+	grid_file raster_file_AirTemp09 <- file('../includes/AirTemp/1airtemp9.asc');
+	grid_file raster_file_MRT09 <- file('../includes/MRT/1mrt9.asc');
+	grid_file raster_file_Windspeed09 <- file('../includes/Windspeed/1windspeed9.asc');
+	grid_file raster_file_RH09 <- file('../includes/RelativeHumidity/1relhum9.asc');
+	grid_file raster_file_AirTemp10 <- file('../includes/AirTemp/1airtemp10.asc');
+	grid_file raster_file_MRT10 <- file('../includes/MRT/1mrt10.asc');
+	grid_file raster_file_Windspeed10 <- file('../includes/Windspeed/1windspeed10.asc');
+	grid_file raster_file_RH10 <- file('../includes/RelativeHumidity/1relhum10.asc');
+	grid_file raster_file_AirTemp11 <- file('../includes/AirTemp/1airtemp11.asc');
+	grid_file raster_file_MRT11 <- file('../includes/MRT/1mrt11.asc');
+	grid_file raster_file_Windspeed11 <- file('../includes/Windspeed/1windspeed11.asc');
+	grid_file raster_file_RH11 <- file('../includes/RelativeHumidity/1relhum11.asc');
+	grid_file raster_file_AirTemp12 <- file('../includes/AirTemp/1airtemp12.asc');
+	grid_file raster_file_MRT12 <- file('../includes/MRT/1mrt12.asc');
+	grid_file raster_file_Windspeed12 <- file('../includes/Windspeed/1windspeed12.asc');
+	grid_file raster_file_RH12 <- file('../includes/RelativeHumidity/1relhum12.asc');
+	grid_file raster_file_AirTemp13 <- file('../includes/AirTemp/1airtemp13.asc');
+	grid_file raster_file_MRT13 <- file('../includes/MRT/1mrt13.asc');
+	grid_file raster_file_Windspeed13 <- file('../includes/Windspeed/1windspeed13.asc');
+	grid_file raster_file_RH13 <- file('../includes/RelativeHumidity/1relhum13.asc');
+	grid_file raster_file_AirTemp14 <- file('../includes/AirTemp/1airtemp14.asc');
+	grid_file raster_file_MRT14 <- file('../includes/MRT/1mrt14.asc');
+	grid_file raster_file_Windspeed14 <- file('../includes/Windspeed/1windspeed14.asc');
+	grid_file raster_file_RH14 <- file('../includes/RelativeHumidity/1relhum14.asc');
+	grid_file raster_file_AirTemp15 <- file('../includes/AirTemp/1airtemp15.asc');
+	grid_file raster_file_MRT15 <- file('../includes/MRT/1mrt15.asc');
+	grid_file raster_file_Windspeed15 <- file('../includes/Windspeed/1windspeed15.asc');
+	grid_file raster_file_RH15 <- file('../includes/RelativeHumidity/1relhum15.asc');
+	//boundary
+	geometry shape <- envelope(raster_file_AirTemp09);
+	//time step
+	float step <- 10 #seconds;
+
+    //--Temporal variables--
+    int current_hour <- int(cycle/360) + startingtime update: int(cycle/360) + startingtime;
+    int previous_hour <- startingtime - 2;
+    int current_minute <- int(cycle/6) mod 60 update: int(cycle/6) mod 60;
+    int current_second <- (cycle*10) mod 60 update: (cycle*10) mod 60;
+    
+    //Variables to be monitored
+    float meanmrt <- 0.0;
+    int nb_people <- 0;
+    int nb_trees <- 0;
+    float sumbuildingarea;
+	float sumbuildingvolume;
+	int nb_haswalked -> {person count (each.haswalked)};
+	int nb_hascommuted -> {person count (each.hascommuted)};
+	int nb_reacheddestination -> {person count (each.reacheddestination)}; 
+	
+	//--initialization setting--
+	init {
+		seed <- seedvalue;
+		create building from: shape_file_building with:[height::float(get("height")), area::float(get("Area"))];
+		create pathway from: shape_file_pathway;
+		create target from: shape_file_target;
+		create treeline from: shape_file_treeline with:[build_N::int(get("Build_N"))=1,
+														build_S::int(get("Build_S"))=1,
+														build_W::int(get("Build_W"))=1,
+														build_E::int(get("Build_E"))=1];										
+		ask env_cell {
+			grid_value <- 0.0;
+			neighbours  <- self neighbors_at 2;			
+			origMRT <- bands[1];
+			modMRT <- bands[1];
+			diffMRT <- 0.0;			
+			modAirTemp <- bands[0];
+			modWindspeed <- bands[2];
+			modRH <- bands[3];
+			if (modMRT = -9999) or (modRH = -9999) or (modWindspeed = 0.0){
+				isabuilding <- true;
+			} else{	 
+				isabuilding <- false;
+			}	
+			loop sidewalk over: pathway{
+				if (sidewalk intersects self){
+					if (isabuilding){
+						isapathway <- false;
+					} else{	 
+						isapathway <- true;
+					}
+				} else{
+					isapathway <- false;
+				}
+			}
+			if (isapathway){
+				color <- rgb(255,255,0);
+				geometry closest_building <- building closest_to self;
+				float dist_to_closest_building <- self distance_to closest_building;
+				h_over_d <- closest_building.height/(dist_to_closest_building+0.001);
+			} else{
+				color <- rgb(255,255,255);
+				h_over_d <- 0.0;
+			}
+		}
+		sumbuildingarea <- building sum_of (each.area);
+		sumbuildingvolume <- building sum_of (each.area*each.height);
+		list<point> tree_pt_list;
+		loop line over: treeline{
+			bool pass <- false;
+			if bool_buildingnorth and line.build_N{
+				pass <- true;
+			} else if bool_buildingsouth and line.build_S{
+				pass <- true;
+			} else if bool_buildingwest and line.build_W{
+				pass <- true;
+			} else if bool_buildingeast and line.build_E{
+				pass <- true;
+			}
+			if pass{
+				list<point> ptlist_inline <-  line points_on(dist_bet_tree);	
+				add ptlist_inline to: tree_pt_list all:true;	
+			}	
+		}
+		if !bool_optimization{
+			loop pt over: tree_pt_list{
+				if env_cell(pt.location).h_over_d < h_over_d_threshold{
+					create tree number: 1 {
+		            location <- pt.location;
+		            my_cell <- env_cell(location);        
+		    		}					
+				}
+			}
+		} else if bool_optimization{
+			if nb_trees_init > length(tree_pt_list){
+				write "Number of trees not possible. Number of trees:" + length(tree_pt_list); 	 
+				stop_currentrun <- true;
+				if !is_batch{				
+					save [dist_bet_tree,build_on_north,build_on_south,build_on_east,build_on_west,h_over_d_threshold,
+        				by_floorarea, by_temporaldistribution, by_optimization,   
+            			nb_people, nb_trees, 
+            			global_speed_no, global_clothes_no, global_tolerancetohotness, global_tolerancetouncomfortness,
+            			meanmrt, nb_haswalked,nb_hascommuted, nb_reacheddestination
+            		] to: "../results/Simulationresults_fail.csv" type: "csv" rewrite: true header: true;			
+					do pause;	
+				}	
+			}
+			list<point> new_tree_pt_list <- tree_pt_list;
+			float highesth_over_d;
+			if nb_trees_init < length(tree_pt_list){
+				loop while: nb_trees_init != length(new_tree_pt_list){
+					highesth_over_d <- 0.0;
+					loop pt over: tree_pt_list{
+						if env_cell(pt.location).h_over_d > highesth_over_d{
+							highesth_over_d <- env_cell(pt.location).h_over_d;
+						}
+					}
+					list highesthdpts <- new_tree_pt_list where (env_cell(each.location).h_over_d = highesth_over_d);
+					point highesthdpt <- highesthdpts[0];
+					remove highesthdpt from: new_tree_pt_list;
+				}			
+			}
+			h_over_d_threshold <- highesth_over_d;
+			loop pt over: new_tree_pt_list{
+				create tree number: 1 {
+		            location <- pt.location;
+		            my_cell <- env_cell(location);        
+		    	}				
+			}
+		}
+		nb_people <- length(person);
+		nb_trees <- length(tree);
+		meanmrt <- env_cell where each.isapathway mean_of (each.modMRT);
+		write "duration of the initialization: " + (machine_time - startt)/1000;
+	}
+	
+	reflex stop_simulation when: current_hour = endingtime{
+        write "duration of simulation: " + (machine_time - startt)/1000;
+		stop_currentrun <- true;
+		if !is_batch{
+			save env_cell to:"../results/walkingdensity.asc" type:"asc";
+    		save env_cell to:"../results/walkingdensity.tif" type:"geotiff";
+        	save [dist_bet_tree,build_on_north,build_on_south,build_on_east,build_on_west,h_over_d_threshold,
+        		by_floorarea, by_temporaldistribution, by_optimization,   
+            	nb_people, nb_trees, 
+            	global_speed_no, global_clothes_no, global_tolerancetohotness, global_tolerancetouncomfortness,
+            	meanmrt, nb_haswalked,nb_hascommuted, nb_reacheddestination
+            ] to: "../results/Simulationresults.csv" type: "csv" rewrite: true header: true;  						
+			do pause;
+		}    	
+    }  
+	
+	reflex updatecrossingmap {
+		float maxgrid_value <- env_cell max_of (each.grid_value);
+		float mingrid_value <- env_cell min_of (each.grid_value);
+		if (maxgrid_value-mingrid_value != 0){
+			ask env_cell {
+				if isapathway{
+					color <- rgb(255,int(255.0*(1.0 - ((grid_value-mingrid_value)/(maxgrid_value-mingrid_value)))),0);	
+				}
+			}
+		}
+	}
+	reflex updatehourlyenvironment when: (current_hour != endingtime and current_hour > previous_hour + 1){	 
+		int index <- current_hour-startingtime;
+		int AirTempindex <- index*4;
+		int MRTindex <- index*4 + 1; 
+		int Windspeedindex <- index*4 + 2; 
+		int RHindex <- index*4 + 3;  
+		ask env_cell {
+			modAirTemp <- bands[AirTempindex];
+			origMRT <- bands[MRTindex];
+			modWindspeed <- bands[Windspeedindex];
+			modRH <- bands[RHindex];
+		}
+		float Altitude <- float(matrixAltAzi[1,index]);
+		float Azimuth <- float(matrixAltAzi[2,index]);
+		float max_mrt <- env_cell where (!each.isabuilding) max_of (each.origMRT);
+		ask tree{
+			loop cell over: env_cell where each.isapathway{
+				float mrtminus <- cell.origMRT - max_mrt;	
+				matrix<float> matrixX <- matrix([[cell.location.x,cell.location.y]]);		
+				float distfromtreex <- -sin(Azimuth)*distfromtree_coef*tree_height/(2*tan(Altitude));
+				float distfromtreey <- cos(Azimuth)*distfromtree_coef*tree_height/(2*tan(Altitude));				
+				matrix<float> matrixM <- matrix([[location.x+distfromtreex,location.y+distfromtreey]]);
+				matrix<float> matrixE <- matrix([
+												[length_coef*abs(2*distfromtreex),-angle_coef*cos(Altitude)*(abs(tan(Azimuth))/tan(Azimuth))],
+												[-angle_coef*cos(Altitude)*(abs(tan(Azimuth))/tan(Azimuth)),length_coef*abs(2*distfromtreey)]]);
+				matrix<float> shiftmatrix <- matrixX-matrixM;
+				matrix<float> exp <- -0.5*transpose(shiftmatrix).inverse(matrixE).shiftmatrix;
+				float det <- determinant(matrixE);
+				float diffMRTfromtree <- -MRT_coef*(1/abs(cos(Azimuth)))*exp(exp[0,0])/(2*#pi*(det^0.5));
+				if (diffMRTfromtree < mrtminus) and (diffMRTfromtree < cell.diffMRT){
+					cell.diffMRT <- diffMRTfromtree;
+				}
+			}	
+		}
+		ask env_cell {
+			modMRT <- origMRT + diffMRT;
+		}
+		int PedestrianNumber <- int(matrixPedNum[1,index]);
+		if !bool_temporaldistribution{
+			PedestrianNumber <- 300;
+		}
+		loop structure over: building{
+			int num_people_inside <- round(PedestrianNumber*structure.area/sumbuildingarea);
+			if !bool_floorarea{
+				num_people_inside <- round(PedestrianNumber*structure.area*structure.height/sumbuildingvolume);
+			}
+			target farthesttarget <- target farthest_to structure;
+			create person number: num_people_inside {
+				//route
+				work_end <- global_work_end;
+				origin_bd <- structure; 
+				end_target <- farthesttarget;
+				//Metabolic rate
+				slow <- global_speed_no = 1 ? true: false;
+				speed <- slow = true ? slow_speed : fast_speed;
+				Metrate <- slow = true ? slow_metrate : fast_metrate;
+				MecPow <- slow = true ? slow_mecpow : fast_mecpow;
+				//Clothes
+				formal <- global_clothes_no = 1 ? true: false;
+				Icl <- formal = true ? formal_icl*0.078*2 : casual_icl*0.078*2;
+				//Tolerance to discomfort parameters
+				tolerancetohotness <- global_tolerancetohotness;
+				tolerancetouncomfortness <- global_tolerancetouncomfortness;
+				durationofuncomfortness <- 0;
+				//Continuous states
+				inside_building <- true;
+				decided <- false;
+				walking <- false;
+				//Output state
+				haswalked <- false;
+				hascommuted <- false;
+				reacheddestination <- false;
+				//Location
+		    	location <- centroid(origin_bd);
+		        my_cell <- env_cell(location);
+		        nearest_pathway_cell <- env_cell where each.isapathway closest_to self;	
+				do add_desire(time_to_still_work);				
+			}
+		}
+		previous_hour <- current_hour - 1;
+    }   	
+}
+
+species person skills: [moving] control:simple_bdi{
+	//--Basic--
+	rgb color <- #transparent;
+	float size <- 2.0;
+	aspect base{
+		draw circle(size) color: color;
+	}
+	//--Route--
+	int work_end;
+	building origin_bd;
+	target end_target;
+	//--Metabolic rate parameters--
+	bool slow;
+	float speed;
+	float Metrate;
+	float MecPow;	
+	//--Clothes parameters--
+	bool formal;
+	float Icl;
+	//Tolerance to discomfort parameters
+	float tolerancetohotness;
+	int tolerancetouncomfortness;
+	int durationofuncomfortness;
+	//--Continuous states--
+	bool inside_building;
+	bool decided;
+	bool walking;
+	//--Output State--
+	bool haswalked;
+	bool hascommuted;
+	bool reacheddestination;
+	//--Location--
+	env_cell my_cell;// update: env_cell(location);
+	env_cell nearest_pathway_cell;
+	//--Beliefs--
+	predicate time_to_still_work <- new_predicate("It is still working hours");
+	predicate time_to_go_home <- new_predicate("It is time to go home");
+	//predicate can_walk <- new_predicate("Environment is hot", false);
+	predicate cannot_walk <- new_predicate("Environment is hot", true);
+	//--Desires--
+	predicate go_out <- new_predicate("Go out of building");
+	predicate walk <- new_predicate("Walk out of work vicinity");
+	predicate commute <- new_predicate("Commute out of work vicinity");
+	//--Perception--
+    perceive target:self when: inside_building{
+		if(current_minute >= work_end){
+		//if (current_hour*60) + current_minute >= work_end{
+			do remove_belief(time_to_still_work);
+			do add_belief(time_to_go_home);
+		}
+	}
+	perceive target:my_cell when: not inside_building{
+		ask myself {
+			//Environmental variables
+			float AirTemp <- my_cell.modAirTemp;
+			float MRT <- my_cell.modMRT;
+			float Windspeed <- my_cell.modWindspeed;
+			float RelHum <- my_cell.modRH;
+			//Computing vapour pressure
+			float ps <- exp(16.6536-(4030.183/(AirTemp+235.0)));
+			float pa <- 1000.0*(RelHum/100.0)*ps;
+			//Skin temperature
+			float Tskin <- 35.7-(0.028*(Metrate-MecPow));
+			//Clothing surface area factor
+			float fclless <- 1.0+(1.29*Icl);
+			float fclmore  <- 1.05+(0.645*Icl);
+			float fcl <- fclless;
+			if (Icl > 0.078){fcl <- fclmore;}
+			//Clothing temperature
+			float InitTcl <- (AirTemp+Tskin)/2.0;
+			float Tcldiff <- 0.1;
+			float Tcl <- InitTcl;
+			float hc;
+			loop while: (Tcldiff > 0.001){
+				//Heat transfer coefficient
+				float hcnat <- 2.38*(abs(Tcl-AirTemp)^0.25);
+				float hcfor <- 12.1*(Windspeed^0.5);
+				hc <- max([hcnat,hcfor]);
+				//Finalizing clothing temperature
+				float NewTcl <- Tskin-(Icl*((3.96*(10^-8)*fcl*(((Tcl+273)^4)-((MRT+273)^4)))+(fcl*hc*(Tcl-AirTemp))));
+				Tcldiff <- abs(Tcl - NewTcl);
+				Tcl <- (NewTcl + Tcl)/2;	
+			}
+			//Fluxes
+			float Perspiration <- 3.05*(10.0^-3.0)*(5733.0-(6.99*(Metrate-MecPow))-pa);
+			float Sweating <- 0.42*(Metrate-MecPow-58.15);
+			float Breathinglatent <- 1.7*(10.0^-5.0)*Metrate*(5867.0-pa);
+			float Breathingsensible <- 0.0014*Metrate*(34.00-AirTemp);
+			float Radiation <- (3.96*(10.0^-8.0)*fcl*(((Tcl+273.0)^4.0)-((MRT+273.0)^4.0)));
+			float Convection <- fcl*hc*(Tcl-AirTemp);
+			float Totalflux <- Perspiration + Sweating + Breathinglatent + Breathingsensible + Radiation + Convection;
+			float Balance <- Metrate - MecPow - Totalflux;
+			//PMV and PPD
+			float PMV <- (0.303*exp(-0.036*Metrate)+0.028)*Balance;
+			if PMV > tolerancetohotness{
+				durationofuncomfortness <- durationofuncomfortness + 1;
+			}
+			if durationofuncomfortness = tolerancetouncomfortness{
+				do add_belief(cannot_walk);
+			}
+		}
+	}
+	//--Rule--
+	rule when: inside_building belief: time_to_go_home new_desire: go_out;
+	rule when: not inside_building and not decided new_desire: walk;
+	rule when: not inside_building and not reacheddestination belief: cannot_walk remove_desire: walk new_desire: commute;
+	//--Plan--
+	plan GoOutBuilding intention: go_out {
+		if self intersects nearest_pathway_cell{
+			inside_building <- false;
+			do remove_desire(go_out);
+			do add_belief(go_out);
+		} else{
+			do goto target: nearest_pathway_cell speed: speed;
+			my_cell <- env_cell(location);
+		}
+	}
+	plan WalkToTarget intention: walk{
+		color <- #blue;
+		decided <- true;
+		walking <- true;
+		if (self distance_to end_target) < 1.5 #meters{
+			color <- #transparent;
+			walking <- false;
+			reacheddestination <- true;
+			haswalked <- true;
+			do remove_desire(walk);
+		} else {
+			do goto target: end_target on: (env_cell where each.isapathway) speed: speed recompute_path: true;
+			env_cell currentcell <- env_cell(location);
+			if (my_cell != currentcell){
+				my_cell <- currentcell;	
+				my_cell.grid_value <- my_cell.grid_value + 1;
+				loop cell over: my_cell.neighbours{
+					if (cell.isapathway){
+						cell.grid_value <- cell.grid_value + 1;
+					} 
+				}
+			}
+		}
+	}
+	plan TrikeToEdge intention: commute{
+		hascommuted <- true;
+		color <- #transparent;
+		decided <- true;
+		walking <- false;
+		reacheddestination <- true;
+		do remove_desire(commute);	
+	}
+}	
+
+species building {
+	rgb color <- #gray;
+	aspect default {
+		draw shape color: color;
+	}
+	float height;
+	float area;
+}
+
+species pathway {
+	rgb color <- #darkgray;
+	aspect default {
+		draw shape color: color;
+	}
+}
+
+species target {
+	rgb color <- #red;
+	aspect default {
+		draw shape color: color;
+	}
+}
+
+species tree {
+	float tree_height <- 8.0;
+	rgb color <- #green;
+	float size <- 2.0;
+	aspect default {
+		draw circle(size) color: color;
+	}
+	env_cell my_cell; 
+}
+
+species treeline {
+	rgb color <- #darkgray;
+	aspect default {
+		draw shape color: color;
+	}
+	bool build_N <- false;
+	bool build_S <- false;
+	bool build_W <- false;
+	bool build_E <- false;
+}
+
+grid env_cell files: [raster_file_AirTemp09, raster_file_MRT09, raster_file_Windspeed09, raster_file_RH09,
+			raster_file_AirTemp10, raster_file_MRT10, raster_file_Windspeed10, raster_file_RH10,
+			raster_file_AirTemp11, raster_file_MRT11, raster_file_Windspeed11, raster_file_RH11,
+			raster_file_AirTemp12, raster_file_MRT12, raster_file_Windspeed12, raster_file_RH12,
+			raster_file_AirTemp13, raster_file_MRT13, raster_file_Windspeed13, raster_file_RH13,
+			raster_file_AirTemp14, raster_file_MRT14, raster_file_Windspeed14, raster_file_RH14,
+			raster_file_AirTemp15, raster_file_MRT15, raster_file_Windspeed15, raster_file_RH15]
+				neighbors: 8 {
+	list<env_cell> neighbours;					
+	float origMRT;
+	float modMRT;
+	float diffMRT;
+	float modAirTemp;
+	float modWindspeed;
+	float modRH;	
+	bool isapathway;
+	bool isabuilding;
+	float h_over_d;
+}
+	
+
+experiment Normal_givenhoverd type: gui {
+	parameter "Optimization experiment or normal experiment?" var: by_optimization <- 0;
+	parameter "Batch mode:" var: is_batch <- false;
+	output {
+		display map_display type: opengl {
+			grid env_cell;
+			species building;
+			species target;
+			species tree;
+			species person aspect: base;
+		}
+		monitor "Hour" value: current_hour;
+		monitor "Minute" value: current_minute;
+		monitor "Second" value: current_second;
+		monitor "Meanmrt" value: meanmrt;
+		monitor "Has walked" value: nb_haswalked;
+		monitor "Has commuted" value: nb_hascommuted;
+		monitor "Total that reached their destination" value: nb_reacheddestination;
+		monitor "Total number of people" value: nb_people;
+	}
+}
+
+experiment Normal_givensamenumberoftree type: gui {
+	parameter "Optimization experiment or normal experiment?" var: by_optimization <- 1;
+	parameter "Batch mode:" var: is_batch <- false;
+	output {
+		display map_display type: opengl {
+			grid env_cell;
+			species building;
+			species target;
+			species tree;
+			species person aspect: base;
+		}
+		monitor "Hour" value: current_hour;
+		monitor "Minute" value: current_minute;
+		monitor "Second" value: current_second;
+		monitor "Meanmrt" value: meanmrt;
+		monitor "Has walked" value: nb_haswalked;
+		monitor "Has commuted" value: nb_hascommuted;
+		monitor "Total that reached their destination" value: nb_reacheddestination;
+		monitor "Total number of people" value: nb_people;
+	}
+}
+///
+experiment Batch type: batch repeat: 20 keep_seed: true until: stop_currentrun{
+	parameter "Distance between trees" var: dist_bet_tree min: 5.0 max: 26.0 step: 3.0;
+	parameter "Have buildings to the north?" var: build_on_north min: 0 max: 1 step: 1 ;
+	parameter "Have buildings to the south?" var: build_on_south min: 0 max: 1 step: 1 ;
+	parameter "Have buildings to the west?" var: build_on_east min: 0 max: 1 step: 1 ;
+	parameter "Have buildings to the east?" var: build_on_west min: 0 max: 1 step: 1 ;
+	//parameter "Building height over distance threshold" var: h_over_d_threshold min: 4.0 max: 40.0 step: 4.0 ;
+	//parameter "By floor area instead of building volume?" var: by_floorarea min: 0 max: 1 step: 1 ;
+	//parameter "Temproally varying instead of uniform?" var: by_temporaldistribution min: 0 max: 1 step: 1 ;
+	//parameter "Optimization experiment or normal experiment?" var: by_optimization min: 0 max: 1 step: 1 ;		
+	parameter "Batch mode:" var: is_batch <- true;
+	
+	//method genetic maximize: nb_haswalked pop_dim: 3 crossover_prob: 0.7 mutation_prob: 0.1 improve_sol: true stochastic_sel: false nb_prelim_gen: 1 max_gen: 7; 		
+	method genetic maximize: nb_haswalked pop_dim: 3 crossover_prob: 0.7 mutation_prob: 0.1 improve_sol: true stochastic_sel: false nb_prelim_gen: 1 max_gen: 5;
+	//method exhaustive;
+	
+	
+	permanent {
+		display Comparison {
+			chart "nb_haswalkedfromstart" type: series {
+				data "Mean" value: mean(simulations collect each.nb_haswalked ) style: spline color: #blue ;
+				data "Min" value:  min(simulations collect each.nb_haswalked ) style: spline color: #darkgreen ;
+				data "Max" value:  max(simulations collect each.nb_haswalked ) style: spline color: #red ;
+			}
+		}	
+	}
+	
+	reflex save_results_explo {
+		write "Run finished. Dist";
+        save [dist_bet_tree,build_on_north,build_on_south,build_on_east,build_on_west,h_over_d_threshold,
+        		by_floorarea, by_temporaldistribution, by_optimization,   
+            	nb_people, nb_trees, 
+            	global_speed_no, global_clothes_no, global_tolerancetohotness, global_tolerancetouncomfortness,
+            	meanmrt, nb_haswalked,nb_hascommuted, nb_reacheddestination
+            ] to: "../results/TreesAffectingHumanWalking_exp4_aggre8.csv" type: "csv" rewrite: false header: true;  
+        int simnumber <- 1;
+	    ask simulations {
+	        save [simnumber,
+	        		dist_bet_tree,build_on_north,build_on_south,build_on_east,build_on_west,h_over_d_threshold,
+	        		by_floorarea, by_temporaldistribution, by_optimization,   
+            		self.nb_people, self.nb_trees,
+            		self.global_speed_no, self.global_clothes_no, self.global_tolerancetohotness, self.global_tolerancetouncomfortness,
+            		self.meanmrt, self.nb_haswalked,self.nb_hascommuted, self. nb_reacheddestination
+            ] to: "../results/TreesAffectingHumanWalking_exp4_ind8.csv" type: "csv" rewrite: false header: true;
+	        simnumber <- simnumber + 1;
+	    }
+    }    
+}
